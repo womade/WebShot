@@ -1,0 +1,17 @@
+{
+  "name": "webshot",
+  "version": "1.0.0",
+  "description": "网页截图",
+  "main": "app.js",
+  "author": "Y-ZHENG",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "puppeteer": "^23.1.1"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
