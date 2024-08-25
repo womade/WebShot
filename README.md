@@ -47,8 +47,7 @@ docker buildx build --platform linux/amd64,linux/arm64 -t womade/webshot --push 
 #### 通过在线镜像安装
 
 ```
-docker run -d --name webshot womade/webshot --net=host --restart=always
-
+docker run -d -p 3030:3030 --name webshot womade/webshot
 ```
 
 
