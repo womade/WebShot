@@ -13,7 +13,7 @@ function sanitizeUrl(url) {
   const urlPattern = /^(https?:\/\/[^\s$]+)/i;
   return urlPattern.test(url) ? url : 'https://error-url.ssss.fun'; // 使用默认 URL
 }
-app.get('/shot', async (req, res) => {
+app.get('/screenshot', async (req, res) => {
   const { url = 'https://i.ssss.fun', w: width = 1920, h: height = 1080, t: delaySec = 1 } = req.query;
   const sanitizedUrl = sanitizeUrl(url);
   let browser;
