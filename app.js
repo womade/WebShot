@@ -1,87 +1,51 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs');
-const util = require('util');
-
+function getCurrentTimestamp() {
+  const now = new Date();
+  return now.toISOString().replace(/T/, ' ').replace(/\..+/, ''); // 格式化为YYYY-MM-DD HH:mm:ss
+}
 const app = express();
 const port = 3030;
-
-// 将 fs.mkdir() 转换为返回 Promise 的函数
-const mkdir = util.promisify(fs.mkdir);
-
-// 定义一个延迟函数，返回一个Promise
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-app.get('/screenshot', async (req, res) => {
+function sanitizeUrl(url) {
+  const urlPattern = /^(https?:\/\/[^\s$]+)/i;
+  return urlPattern.test(url) ? url : 'https://error-url.ssss.fun'; // 使用默认 URL
+}
+app.get('/shot', async (req, res) => {
+  const { url = 'https://i.ssss.fun', w: width = 1920, h: height = 1080, t: delaySec = 1 } = req.query;
+  const sanitizedUrl = sanitizeUrl(url);
+  let browser;
   try {
-    // 获取UA
-    const userAgent = req.headers['user-agent'];
-
-    // 启动浏览器
-    const browser = await puppeteer.launch({
-      headless: 'new',
+    browser = await puppeteer.launch({
+      headless: true,
       args: ['--no-sandbox'],
     });
-
-    // m 支持 = file 直接返回截图文件
-    const { url = 'https://i.ssss.fun', w: width = 1920, h: height = 1080, m = 'json', t: delaySec = 1 } = req.query;
-
-    // 创建一个新页面
     const page = await browser.newPage();
-
-    // 导航到指定网址
-    await page.goto(url);
-
-    // 等待页面加载完成
-    await page.waitForSelector('body');
-
-    // 将秒数转换为毫秒数
-    const delayMs = delaySec * 1000;
-
-    // 添加可配置的延迟时间
-    await delay(delayMs); // 使用请求参数中的延迟时间，单位已转换为毫秒
-
-    // 设置视口大小为全屏
-    await page.setViewport({ width: +width, height: +height });
-
-    // 生成不重复的文件名
-    const filename = `screenshot_${Date.now()}.png`;
-
-    const baseDir = 'screenshot';
-
-    // 不存在则新建
-    if(!(fs.existsSync(baseDir) && fs.statSync(baseDir).isDirectory())) {
-      await mkdir(baseDir);
-    }
-
-    // 截图文件的路径
-    const imagePath = path.join(__dirname, 'screenshot', filename);
-
-    // 进行页面截图 放到根目录 screenshot 文件夹下
+    await page.goto(sanitizedUrl);
+    const delayMs = parseInt(delaySec, 10) * 1000;
+    await delay(delayMs);
+    await page.setViewport({ width: parseInt(width, 10), height: parseInt(height, 10) });
+    // 执行截图
     const screenshotBuffer = await page.screenshot();
-
-    // 指定保存路径并将截图保存为文件
-    fs.writeFileSync(imagePath, screenshotBuffer);
-
-    // 关闭浏览器
-    await browser.close();
-
-    // 直接返回文件
-    if (m === 'file') {
-      res.sendFile(imagePath);
-      return;
-    }
-    // 默认返回json
-    res.json({ screenshot_path: imagePath, userAgent, resolution: `${width}x${height}`, screenshot: screenshotBuffer.toString('base64') });
+    // 发送截图作为响应
+    res.set('Content-Type', 'image/png'); // 设置响应头以指示内容类型
+    res.send(screenshotBuffer); // 发送截图二进制数据
   } catch (error) {
-    console.debug(error);
-    res.status(500).send(`Error capturing screenshot, ${error.toString()}`);
+    const timestampedError = `[${getCurrentTimestamp()}] Error processing request: ${error.message}`;
+    console.error(timestampedError);
+    res.status(500).json({
+      error: '❌ Failed to process request',
+      details: error.message,
+      time: getCurrentTimestamp()
+    });
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 });
-
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
